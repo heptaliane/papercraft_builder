@@ -7,3 +7,22 @@ edition = "2021"
 
 [dependencies]
 approx = "0.5.1"
+js-sys = "0.3.69"
+wasm-bindgen = "0.2.92"
+
+[dependencies.yew]
+version = "0.21"
+features = [
+    "csr",
+]
+
+[dependencies.web-sys]
+version = "0.3.69"
+features = [
+    "HtmlCanvasElement",
+    "WebGl2RenderingContext",
+    "WebGlShader",
+    "WebGlProgram",
+    "WebGlBuffer",
+    "WebGlVertexArrayObject",
+]
