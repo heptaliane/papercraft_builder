@@ -9,6 +9,9 @@ use crate::models::{Coord, CoordUnit};
 const VERTEX_SHADER: &str = include_str!("./shader/vertex.glsl");
 const FRAGMENT_SHADER: &str = include_str!("./shader/fragment.glsl");
 
+const CANVAS_WIDTH: u32 = 800;
+const CANVAS_HEIGHT: u32 = 800;
+
 const VERTICES: &[Coord] = &[
     [0.0, 0.0, 0.0],
     [0.5, 0.0, 0.0],
@@ -36,6 +39,8 @@ pub fn WebGLCanvas() -> Html {
             let canvas = canvas_ref
                 .cast::<HtmlCanvasElement>()
                 .expect("canvas_ref not attached to canvas element");
+            canvas.set_height(CANVAS_HEIGHT);
+            canvas.set_width(CANVAS_WIDTH);
             let context = create_webgl_context(&canvas).unwrap();
 
             let indices = INDICES.concat();
@@ -56,12 +61,17 @@ pub fn WebGLCanvas() -> Html {
     }
 }
 
-fn draw(context: &WebGl2RenderingContext, vertex_count: i32) {
+fn draw(context: &WebGl2RenderingContext, index_count: i32) {
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear_depth(1.0);
     context
         .clear(WebGl2RenderingContext::COLOR_BUFFER_BIT | WebGl2RenderingContext::DEPTH_BUFFER_BIT);
-    context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vertex_count);
+    context.draw_elements_with_i32(
+        WebGl2RenderingContext::TRIANGLES,
+        index_count,
+        WebGl2RenderingContext::UNSIGNED_SHORT,
+        0,
+    );
     context.flush();
 }
 
