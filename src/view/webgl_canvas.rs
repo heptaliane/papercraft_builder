@@ -3,7 +3,7 @@ use yew::{function_component, html, use_effect_with, use_node_ref, Html};
 
 use super::utils::{
     draw_triangles, get_webgl_rendering_context, rotate_view_point, set_color_data, set_ibo_data,
-    set_vertex_data, setup_program, create_vertex_array,
+    set_vertex_data, setup_program, setup_vertex_array,
 };
 
 const CANVAS_WIDTH: u32 = 800;
@@ -59,19 +59,19 @@ fn draw_canvas(
     axis: &[f32; 3],
     radians: f32,
 ) -> Result<(), String> {
+    let flatten_indices = indices.concat();
+
     let context = get_webgl_rendering_context(canvas).expect("Failed to get WebGL context");
     let program = setup_program(&context)?;
 
-    let vao = create_vertex_array(&context)?;
-    context.bind_vertex_array(Some(&vao));
+    setup_vertex_array(&context)?;
     set_vertex_data(&context, &program, &vertex)?;
     set_color_data(&context, &program, &color)?;
-    set_ibo_data(&context, &indices.concat())?;
-    context.bind_vertex_array(Some(&vao));
+    set_ibo_data(&context, &flatten_indices)?;
 
     rotate_view_point(&context, &program, axis, radians);
 
-    draw_triangles(&context, indices.len() as i32);
+    draw_triangles(&context, flatten_indices.len() as i32);
 
     Ok(())
 }
