@@ -23,6 +23,7 @@ features = [
 version = "0.3.69"
 features = [
     "HtmlCanvasElement",
+    "HtmlInputElement",
     "WebGl2RenderingContext",
     "WebGlBuffer",
     "WebGlProgram",
