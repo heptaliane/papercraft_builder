@@ -47,13 +47,14 @@ pub fn setup_program(context: &WebGl2RenderingContext) -> Result<WebGlProgram, S
     Ok(program)
 }
 
-pub fn create_vertex_array(
+pub fn setup_vertex_array(
     context: &WebGl2RenderingContext,
-) -> Result<WebGlVertexArrayObject, String> {
+) -> Result<(), String> {
     let vao = context
         .create_vertex_array()
         .ok_or("Could not create vertex array object")?;
-    Ok(vao)
+    context.bind_vertex_array(Some(&vao));
+    Ok(())
 }
 
 pub fn set_vertex_data(
