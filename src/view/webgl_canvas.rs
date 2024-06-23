@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use web_sys::HtmlCanvasElement;
-use yew::{function_component, html, use_effect_with, use_node_ref, Html, Properties};
+use yew::{function_component, html, use_effect_with, use_node_ref, use_state, Html, Properties};
 
 use super::utils::WebGlCanvasDrawer;
 
@@ -32,7 +32,7 @@ pub struct WebGLCanvasProps {
 #[function_component]
 pub fn WebGLCanvas(props: &WebGLCanvasProps) -> Html {
     let canvas_ref = use_node_ref();
-    let drawer_ref: Rc<RefCell<Option<WebGlCanvasDrawer>>> = Rc::new(RefCell::new(None));
+    let drawer_ref = use_state(|| Rc::new(RefCell::new(None::<WebGlCanvasDrawer>)));
 
     {
         let canvas_ref = canvas_ref.clone();
