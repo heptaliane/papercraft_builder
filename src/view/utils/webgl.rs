@@ -1,8 +1,6 @@
 use nalgebra_glm as glm;
 use wasm_bindgen::prelude::{JsCast, JsValue};
-use web_sys::{
-    HtmlCanvasElement, WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlVertexArrayObject,
-};
+use web_sys::{HtmlCanvasElement, WebGl2RenderingContext, WebGlProgram, WebGlShader};
 
 const VERTEX_SHADER: &str = include_str!("./shader/vertex.glsl");
 const FRAGMENT_SHADER: &str = include_str!("./shader/fragment.glsl");
@@ -11,11 +9,70 @@ const VERTEX_SHADER_ATTRIB_POSITION: &str = "position";
 const VERTEX_SHADER_ATTRIB_COLOR: &str = "color";
 const VERTEX_SHADER_UNIFORM_VIEW_MATRIX: &str = "viewMatrix";
 
+const DEFAULT_ROTATE_AXIS: [f32; 3] = [0.0, 0.0, 1.0];
+
 const CAMERA_POS: [f32; 3] = [0.0, 0.0, 1.0];
 const CAMERA_TARGET: [f32; 3] = [0.0, 0.0, 0.0];
 const CAMERA_UP: [f32; 3] = [0.0, 1.0, 0.0];
 
-pub fn get_webgl_rendering_context(
+pub struct WebGlCanvasDrawer {
+    context: WebGl2RenderingContext,
+    program: WebGlProgram,
+
+    vertex_data: Vec<[f32; 3]>,
+    color_data: Vec<[f32; 4]>,
+    ibo_data: Vec<u16>,
+
+    axis: [f32; 3],
+    radians: f32,
+}
+
+impl WebGlCanvasDrawer {
+    pub fn try_new(canvas: &HtmlCanvasElement) -> Result<Self, String> {
+        let context = get_webgl_rendering_context(canvas).expect("Failed to get WebGL context");
+        let program = setup_program(&context)?;
+        setup_vertex_array(&context)?;
+
+        Ok(Self {
+            context,
+            program,
+            vertex_data: Vec::new(),
+            color_data: Vec::new(),
+            ibo_data: Vec::new(),
+            axis: DEFAULT_ROTATE_AXIS,
+            radians: 0.0,
+        })
+    }
+
+    pub fn set_drawing_data(
+        &mut self,
+        vertex_data: Vec<[f32; 3]>,
+        color_data: Vec<[f32; 4]>,
+        ibo_data: &[[u16; 3]],
+    ) {
+        self.vertex_data = vertex_data;
+        self.color_data = color_data;
+        self.ibo_data = ibo_data.concat();
+    }
+
+    pub fn set_rotate_angle(&mut self, axis: &[f32; 3], radians: f32) {
+        self.axis = axis.clone();
+        self.radians = radians;
+    }
+
+    pub fn draw(&self) -> Result<(), String> {
+        set_vertex_data(&self.context, &self.program, &self.vertex_data)?;
+        set_color_data(&self.context, &self.program, &self.color_data)?;
+        set_ibo_data(&self.context, &self.ibo_data)?;
+
+        rotate_view_point(&self.context, &self.program, &self.axis, self.radians);
+
+        draw_triangles(&self.context, self.ibo_data.len() as i32);
+        Ok(())
+    }
+}
+
+fn get_webgl_rendering_context(
     canvas: &HtmlCanvasElement,
 ) -> Result<WebGl2RenderingContext, JsValue> {
     let context = canvas
@@ -30,7 +87,7 @@ pub fn get_webgl_rendering_context(
     Ok(context)
 }
 
-pub fn setup_program(context: &WebGl2RenderingContext) -> Result<WebGlProgram, String> {
+fn setup_program(context: &WebGl2RenderingContext) -> Result<WebGlProgram, String> {
     let vertex_shader = compile_shader(
         &context,
         WebGl2RenderingContext::VERTEX_SHADER,
@@ -47,9 +104,7 @@ pub fn setup_program(context: &WebGl2RenderingContext) -> Result<WebGlProgram, S
     Ok(program)
 }
 
-pub fn setup_vertex_array(
-    context: &WebGl2RenderingContext,
-) -> Result<(), String> {
+fn setup_vertex_array(context: &WebGl2RenderingContext) -> Result<(), String> {
     let vao = context
         .create_vertex_array()
         .ok_or("Could not create vertex array object")?;
@@ -57,7 +112,7 @@ pub fn setup_vertex_array(
     Ok(())
 }
 
-pub fn set_vertex_data(
+fn set_vertex_data(
     context: &WebGl2RenderingContext,
     program: &WebGlProgram,
     vertex_data: &[[f32; 3]],
@@ -67,7 +122,7 @@ pub fn set_vertex_data(
     Ok(())
 }
 
-pub fn set_color_data(
+fn set_color_data(
     context: &WebGl2RenderingContext,
     program: &WebGlProgram,
     color_data: &[[f32; 4]],
@@ -77,7 +132,7 @@ pub fn set_color_data(
     Ok(())
 }
 
-pub fn set_ibo_data(context: &WebGl2RenderingContext, data: &[u16]) -> Result<(), String> {
+fn set_ibo_data(context: &WebGl2RenderingContext, data: &[u16]) -> Result<(), String> {
     let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
     context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&buffer));
 
@@ -94,7 +149,7 @@ pub fn set_ibo_data(context: &WebGl2RenderingContext, data: &[u16]) -> Result<()
     Ok(())
 }
 
-pub fn rotate_view_point(
+fn rotate_view_point(
     context: &WebGl2RenderingContext,
     program: &WebGlProgram,
     axis: &[f32; 3],
@@ -108,8 +163,7 @@ pub fn rotate_view_point(
     let axis = glm::make_vec3(axis);
     let rorate_matrix = glm::rotate(&glm::Mat4::identity(), radians, &axis);
 
-    // let glm_matrix = view_matrix * rorate_matrix;
-    let glm_matrix = glm::Mat4::identity();
+    let glm_matrix = view_matrix * rorate_matrix;
     let matrix: [[f32; 4]; 4] = glm_matrix.into();
     let glsl_matrix = matrix.concat().to_vec();
 
@@ -123,7 +177,7 @@ pub fn rotate_view_point(
     );
 }
 
-pub fn draw_triangles(context: &WebGl2RenderingContext, index_count: i32) {
+fn draw_triangles(context: &WebGl2RenderingContext, index_count: i32) {
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear_depth(1.0);
     context
