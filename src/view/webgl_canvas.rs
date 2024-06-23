@@ -49,7 +49,13 @@ pub fn WebGLCanvas(props: &WebGLCanvasProps) -> Html {
             if let Ok(drawer) = WebGlCanvasDrawer::try_new(&canvas) {
                 *drawer_ref.borrow_mut() = Some(drawer);
             }
+        });
+    }
 
+    {
+        let drawer_ref = drawer_ref.clone();
+        let props = props.clone();
+        use_effect_with(props, move |props| {
             if let Some(drawer) = drawer_ref.borrow_mut().as_mut() {
                 drawer.set_drawing_data(
                     Vec::from(props.vertices.as_ref()),
