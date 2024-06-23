@@ -1,6 +1,6 @@
 use wasm_bindgen::JsCast;
 use yew::{function_component, html, Html, Properties, Callback};
-use web_sys::{Event, HtmlInputElement};
+use web_sys::{InputEvent, HtmlInputElement};
 
 
 const DEFAULT_MIN: f32 = 0.0;
@@ -26,7 +26,7 @@ pub struct SliderProps {
 pub fn Slider(props: &SliderProps) -> Html {
     let handle_change = {
         let onchange = props.onchange.clone();
-        Callback::from(move |e: Event| {
+        Callback::from(move |e: InputEvent| {
             let target = e.target().and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
             if let Some(elem) = target {
                 if let Ok(value) = elem.value().parse() {
@@ -42,7 +42,7 @@ pub fn Slider(props: &SliderProps) -> Html {
             max={props.max.to_string()}
             min={props.min.to_string()}
             step={props.step.to_string()}
-            onchange={handle_change}
+            oninput={handle_change}
         />
     }
 }
